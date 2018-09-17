@@ -8,12 +8,6 @@ public:
 	virtual void print() = 0;
 };
 
-class CheckBox
-{
-public:
-	virtual void print() = 0;
-};
-
 class MacButton : public Button
 {
 public:
