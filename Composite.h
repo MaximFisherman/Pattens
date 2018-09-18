@@ -25,17 +25,17 @@ class CompoundGraphics : public Component
 public: 
 	CompoundGraphics(vector<Component*> _components) 
 	{
-		for (int i = 0; i < _components.size(); i++)
+		for (auto x : _components)
 		{
-			components.emplace_back(_components[i]);
+			components.emplace(components.begin(), x);
 		}
 	};
 	CompoundGraphics() = default;
 	virtual void execute() override
 	{
-		for (int i = 0; i < components.size(); i++)
+		for (auto& x : components)
 		{
-			components[i]->execute();
+			x->execute();
 		}
 
 		cout << "CompoundGraphics finish" << endl;
