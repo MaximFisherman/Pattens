@@ -25,10 +25,7 @@ class CompoundGraphics : public Component
 public: 
 	CompoundGraphics(vector<Component*> _components) 
 	{
-		for (auto x : _components)
-		{
-			components.emplace(components.begin(), x);
-		}
+		components.insert(components.begin(), _components.begin(), end(_components));
 	};
 	CompoundGraphics() = default;
 	virtual void execute() override
