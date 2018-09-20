@@ -6,7 +6,7 @@ class IRequest
 {
 	int level_make;
 public:
-	virtual int getLevel_make() = 0;
+	virtual int getPriority() = 0;
 };
 
 class ITask
@@ -34,7 +34,7 @@ public:
 
 	virtual void makeTask(IRequest* request) override
 	{
-		if (level_make < request->getLevel_make()) {
+		if (level_make < request->getPriority()) {
 			if (next) {
 				next->makeTask(request);
 			}
@@ -67,7 +67,7 @@ class Error : public IRequest
 {
 public:
 	Error() { cout << "Error" << endl; };
-	virtual int getLevel_make() override
+	virtual int getPriority() override
 	{
 		return 2;
 	}
@@ -77,7 +77,7 @@ class Delete : public IRequest
 {
 public:
 	Delete() { cout << "Delete" << endl; };
-	virtual int getLevel_make() override
+	virtual int getPriority() override
 	{
 		return 4;
 	}
