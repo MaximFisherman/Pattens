@@ -19,7 +19,7 @@ struct CompareWeakPTR
 {
     bool operator() (const weak_ptr<IListener>& lhs, const weak_ptr<IListener>& rhs) const
     {
-        if(!lhs.expired() || rhs.expired())
+        if(!lhs.expired() || !rhs.expired())
         {
             auto lptr = lhs.lock(), rptr = rhs.lock();
 
@@ -127,6 +127,7 @@ int main(int argc, char *argv[])
         eventManager.subscribe(openFilePTR);
         eventManager.subscribe(closeFileEventPTR);
 
+        /* Unsubscribe */ //eventManager.unsubscribe(closeFileEventPTR);
         Editor editor(&eventManager);
         editor.openFile();
     editor.closeFile();
