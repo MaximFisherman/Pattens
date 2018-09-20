@@ -2,6 +2,24 @@
 #include "stdafx.h"
 using namespace std;
 
+template<typename T>
+struct MyWeakPtrHash : public std::unary_function<std::weak_ptr<T>, size_t> {
+	size_t operator()(const std::weak_ptr<T>& wp) const
+	{
+		auto sp = wp.lock();
+		return std::hash<decltype(sp)>()(sp);
+	}
+};
+
+template<typename T>
+struct MyWeakPtrEqual : public std::unary_function<std::weak_ptr<T>, bool> {
+
+	bool operator()(const std::weak_ptr<T>& left, const std::weak_ptr<T>& right) const
+	{
+		return !left.owner_before(right) && !right.owner_before(left);
+	}
+};
+
 class EventManager;
 class IListener
 {
@@ -13,7 +31,10 @@ public:
 class EventManager
 {
 private:
-	vector<unique_ptr<IListener>> listeners; 
+	std::unordered_set<std::weak_ptr<IListener>, 
+		MyWeakPtrHash<IListener>,
+		MyWeakPtrEqual<IListener>> listeners;
+
 public:
 	EventManager()
 	{
@@ -21,71 +42,47 @@ public:
 
 	void notify(std::string command)
 	{
-		if (command == "save")
+		if (!listeners.empty())
 		{
-			listeners[0]->update(this);
-		}
+			for (auto x : listeners)
+			{
+				if (!x.expired())
+				{
+					auto xc = shared_ptr<IListener>{ x };
 
-		if (command == "close")
-		{
-			listeners[1]->update(this);
+					if ((xc->id() == 1) && (command == "close"))
+						xc->update(this);
+					
+					if ((xc->id() == 2) && (command == "save"))
+						xc->update(this);
+				}
+			}
 		}
 	}
 
-	void subscribe(unique_ptr<IListener> listener)
+	void subscribe(const shared_ptr<IListener>& listener)
 	{
-		vector<unique_ptr<IListener>>::const_iterator it = find_if(listeners.begin(), listeners.end(),
-		[&](unique_ptr<IListener>& l)
-		{
-			return (l->id() == listener->id());
-		});
-
-		if (it == listeners.end())
-		{
-			listeners.emplace_back(std::move(listener));
-			for (auto& x : listeners)
-			{
-				cout << typeid(*x).name() << " ";
-			}
-			cout << endl;
-		}
-		else
-		{
-			cout << endl;
-			cout << "Already exist" << endl;
-		}
+		listeners.insert(listener);
 	}
 	
-	void unsubscribe(IListener* listener)
+	void unsubscribe(shared_ptr<IListener> listener)
 	{
-		listeners.erase(
-			std::remove_if(listeners.begin(), listeners.end(),
-			[&](unique_ptr<IListener>& l)
-		{
-			return (typeid(l) == typeid(std::make_unique<IListener>(listener)));
-		}), listeners.end());
-		
-		for (auto& x : listeners)
-		{
-			cout << typeid(*x).name() << " ";
-		}
-		cout << endl;
+		listeners.erase(listeners.find(listener));
 	}
-
 };
 
 class Editor
 {
 	unique_ptr<EventManager> eventManager;
 public:
-	Editor(EventManager* _eventManager) : eventManager(std::move(_eventManager)) {};
+	Editor(EventManager* _eventManager) : eventManager(_eventManager) {};
 
-	
 	/* some method */
 	void openFile()
 	{
 		eventManager->notify("save");
 	}
+
 	/* some method */
 	void closeFile()
 	{
