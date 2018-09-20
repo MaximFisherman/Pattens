@@ -4,9 +4,9 @@ using namespace std;
 
 class IRequest
 {
-	int priority;
+	int level_make;
 public:
-	virtual int getPriority() = 0;
+	virtual int getLevel_make() = 0;
 };
 
 class ITask
@@ -20,11 +20,11 @@ public:
 class TaskManager : public ITask
 {
 	ITask* next;
-	int priority;
+	int level_make;
 protected:
 	virtual void render(IRequest*) {};
 public:
-	TaskManager(int _priority) : priority(_priority) {};
+	TaskManager(int _level_make) : level_make(_level_make) {};
 
 	virtual ITask* setNext(ITask* concreteTask) override 
 	{
@@ -34,7 +34,7 @@ public:
 
 	virtual void makeTask(IRequest* request) override
 	{
-		if (priority < request->getPriority()) {
+		if (level_make < request->getLevel_make()) {
 			if (next) {
 				next->makeTask(request);
 			}
@@ -51,15 +51,15 @@ public:
 class ErrorDialog : public TaskManager
 {
 public: 
-	ErrorDialog(int priority) : TaskManager(priority) {};
-		void render(IRequest* request) { cout << "task error dialog" << endl; };
+	ErrorDialog(int level_make) : TaskManager(level_make) {};
+		void render(IRequest* request) { cout << "Error dialog" << endl; };
 };
 
 class DeleteUserObject : public TaskManager
 {
 public:
-	DeleteUserObject(int priority) : TaskManager(priority) {};
-		void render(IRequest* request) { cout << "task error DeleteUserObject" << endl; };
+	DeleteUserObject(int level_make) : TaskManager(level_make) {};
+		void render(IRequest* request) { cout << "DeleteUserObject" << endl; };
 };
 
 
@@ -67,7 +67,7 @@ class Error : public IRequest
 {
 public:
 	Error() { cout << "Error" << endl; };
-	virtual int getPriority() override
+	virtual int getLevel_make() override
 	{
 		return 2;
 	}
@@ -77,7 +77,7 @@ class Delete : public IRequest
 {
 public:
 	Delete() { cout << "Delete" << endl; };
-	virtual int getPriority() override
+	virtual int getLevel_make() override
 	{
 		return 4;
 	}
