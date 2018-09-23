@@ -10,7 +10,7 @@ class EventManager;
 class IListener
 {
 public:
-    virtual void update(EventManager* eventManager) = 0;
+    virtual void update(shared_ptr<EventManager> eventManager) = 0;
     virtual int id() = 0;
 };
 
@@ -19,10 +19,9 @@ struct CompareWeakPTR
 {
     bool operator() (const weak_ptr<IListener>& lhs, const weak_ptr<IListener>& rhs) const
     {
-        if(!lhs.expired() && !rhs.expired())
+        auto lptr = lhs.lock(), rptr = rhs.lock();
+        if((lptr != nullptr) && (rptr != nullptr))
         {
-            auto lptr = lhs.lock(), rptr = rhs.lock();
-
             return (lptr->id() > rptr->id());
         } else
         {
@@ -31,7 +30,7 @@ struct CompareWeakPTR
     }
 };
 
-class EventManager
+class EventManager : public std::enable_shared_from_this<EventManager>
 {
 private:
     std::set<std::weak_ptr<IListener>,
@@ -48,15 +47,14 @@ public:
         {
             for (auto x : listeners)
             {
-                if (!x.expired())
+                auto x_ptr = x.lock();
+                if (x_ptr != nullptr)
                 {
-                    auto xc = shared_ptr<IListener>{ x };
+                    if ((x_ptr->id() == 1) && (command == "close"))
+                        x_ptr->update(shared_from_this());
 
-                    if ((xc->id() == 1) && (command == "close"))
-                        xc->update(this);
-
-                    if ((xc->id() == 2) && (command == "save"))
-                        xc->update(this);
+                    if ((x_ptr->id() == 2) && (command == "save"))
+                        x_ptr->update(shared_from_this());
                 }
             }
         }
@@ -75,9 +73,9 @@ public:
 
 class Editor
 {
-    unique_ptr<EventManager> eventManager;
+    shared_ptr<EventManager> eventManager;
 public:
-    Editor(EventManager* _eventManager) : eventManager(_eventManager) {};
+    Editor(shared_ptr<EventManager> _eventManager) : eventManager(_eventManager) {};
 
     /* some method */
     void openFile()
@@ -96,7 +94,7 @@ public:
 class OpenFileEvent : public IListener
 {
 public:
-    virtual void update(EventManager* eventManager)
+    virtual void update(shared_ptr<EventManager> eventManager)
     {
         cout << "Open file" << endl;
     }
@@ -110,7 +108,7 @@ public:
 class CloseFileEvent : public IListener
 {
 public:
-    virtual void update(EventManager* eventManager)
+    virtual void update(shared_ptr<EventManager> eventManager)
     {
         cout << "Close file" << endl;
     }
@@ -124,15 +122,15 @@ public:
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    EventManager eventManager;
+        shared_ptr<EventManager> eventManager(new EventManager);
         shared_ptr<IListener> openFilePTR(new OpenFileEvent);
         shared_ptr<IListener> closeFileEventPTR(new CloseFileEvent);
-        eventManager.subscribe(openFilePTR);
-        eventManager.subscribe(closeFileEventPTR);
+        eventManager->subscribe(openFilePTR);
+        eventManager->subscribe(closeFileEventPTR);
 
-        /* Unsubscribe */ eventManager.unsubscribe(closeFileEventPTR);
-        Editor editor(&eventManager);
+        /* Unsubscribe */ eventManager->unsubscribe(closeFileEventPTR);
+        Editor editor(eventManager);
         editor.openFile();
-    editor.closeFile();
-    return a.exec();
+        editor.closeFile();
+        return a.exec();
 }
